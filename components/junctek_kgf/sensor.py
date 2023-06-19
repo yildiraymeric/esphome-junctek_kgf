@@ -11,6 +11,7 @@ from esphome.const import (
     CONF_TEMPERATURE,
     CONF_VOLTAGE,
     CONF_CURRENT,
+    CONF_POWER,
     CONF_BATTERY_LEVEL,
     
     DEVICE_CLASS_VOLTAGE,
@@ -18,6 +19,8 @@ from esphome.const import (
     UNIT_VOLT,
     UNIT_CELSIUS,
     UNIT_AMPERE,
+    UNIT_WATT,
+    UNIT_OHM,
     CONF_UPDATE_INTERVAL,
     UNIT_EMPTY,
     UNIT_PERCENT,
@@ -25,9 +28,11 @@ from esphome.const import (
     ICON_THERMOMETER,
     ICON_FLASH,
     ICON_PERCENT,
+    ICON_POWER,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_BATTERY,
     DEVICE_CLASS_TEMPERATURE,
+    DEVICE_CLASS_POWER,
 )
 
 
@@ -39,11 +44,14 @@ AUTO_LOAD = ["sensor"]
 TYPES = [
     CONF_VOLTAGE,
     CONF_CURRENT,
+    CONF_POWER,
     CONF_BATTERY_LEVEL,
     CONF_TEMPERATURE,
 ]
 
 CONF_INVERT_CURRENT="invert_current"
+CONF_CURRENT_DIRECTION="current_direction"
+CONF_BATTERY_OHM="battery_ohm"
 
 JuncTekKGF = cg.global_ns.class_(
     "JuncTekKGF", cg.Component, uart.UARTDevice
@@ -68,10 +76,24 @@ CONFIG_SCHEMA = cv.All(
                 device_class=DEVICE_CLASS_CURRENT,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
+            cv.Optional(CONF_POWER): sensor.sensor_schema(
+                unit_of_measurement=UNIT_WATT,
+                icon=ICON_POWER,
+                accuracy_decimals=1,
+                device_class=DEVICE_CLASS_POWER,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
             cv.Optional(CONF_BATTERY_LEVEL): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
                 icon=ICON_PERCENT,
                 accuracy_decimals=1,
+                device_class=DEVICE_CLASS_BATTERY,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_BATTERY_OHM): sensor.sensor_schema(
+                unit_of_measurement=UNIT_OHM,
+                icon="mdi:resistor",
+                accuracy_decimals=2,
                 device_class=DEVICE_CLASS_BATTERY,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
@@ -83,6 +105,7 @@ CONFIG_SCHEMA = cv.All(
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_INVERT_CURRENT, default=False): cv.boolean, 
+            cv.Optional(CONF_CURRENT_DIRECTION, default=True): cv.boolean,
         }
     ).extend(uart.UART_DEVICE_SCHEMA)
     )
@@ -95,7 +118,7 @@ async def setup_conf(config, key, hub):
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID], config[CONF_ADDRESS], config[CONF_INVERT_CURRENT])
+    var = cg.new_Pvariable(config[CONF_ID], config[CONF_ADDRESS], config[CONF_INVERT_CURRENT], config[CONF_CURRENT_DIRECTION], config[CONF_BATTERY_OHM])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
     for key in TYPES:

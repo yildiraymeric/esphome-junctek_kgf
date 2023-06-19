@@ -43,10 +43,14 @@ int getval(const char*& cursor)
 }
   
 
-JuncTekKGF::JuncTekKGF(unsigned address, bool invert_current)
-  : address_(address)
-  , invert_current_(invert_current)
+JuncTekKGF::JuncTekKGF(unsigned address, bool invert_current, unsigned settings_refresh_seconds, unsigned data_refresh_seconds)
+  // : address_(address)
+  // , invert_current_(invert_current)
 {
+  set_address(address);
+  set_invert_current(invert_current);
+  set_settings_refresh_seconds(settings_refresh_seconds)
+  set_data_refresh_seconds(data_refresh_seconds)
 }
 
 void JuncTekKGF::dump_config()
@@ -117,19 +121,48 @@ void JuncTekKGF::handle_status(const char* buffer)
   const int batteryLifeMinutes = getval(cursor);
   const float batteryInternalOhms = getval(cursor) / 100.0;
   ESP_LOGV("JunkTekKGF", "Recv %f %f %d %f %f %f", voltage, ampHourRemaining, direction, powerInWatts, amps, temperature);
+  
   if (voltage_sensor_)
     this->voltage_sensor_->publish_state(voltage);
-  if (battery_level_sensor_ && this->battery_capacity_)
-    this->battery_level_sensor_->publish_state(ampHourRemaining * 100.0 / *this->battery_capacity_);
+  
   if (current_sensor_)
   {
-    float adjustedCurrent = direction == 0 ? amps : -amps;
-    if (invert_current_)
-      adjustedCurrent *= -1;
+    float adjustedCurrent = (direction == 0 && !invert_current_) ? amps : -amps;
     current_sensor_->publish_state(adjustedCurrent);
   }
+
+  if (power_sensor_)
+    this->power_sensor_->publish_state(powerInWatts);
+
+  if (current_direction_sensor_)
+    this->current_direction_sensor_->publish_state(direction == 0);
+
+  if (battery_ohm_sensor_)
+    this->battery_ohm_sensor_->publish_state(batteryInternalOhms);
+
+  if (battery_level_sensor_ && this->battery_capacity_)
+    this->battery_level_sensor_->publish_state(ampHourRemaining * 100.0 / *this->battery_capacity_);
+
+  if (battery_life_sensor_)
+    this->battery_life_sensor_->publish_state(batteryLifeMinutes);  
+    
+  if (amp_hour_remain_sensor_)
+    this->amp_hour_remain_sensor_->publish_state(ampHourRemaining);
+
+  if (watt_hour_remain_sensor_)
+    this->watt_hour_remain_sensor_->publish_state(wattHourRemaining);
+
+  if (amp_hour_total_sensor_)
+    this->amp_hour_total_sensor_->publish_state(ampHourTotalUsed);
+
+  if (relay_status_sensor_)
+    this->relay_status_sensor_->publish_state(relayStatus == 0);
+
   if (temperature_)
     this->temperature_->publish_state(temperature);
+
+  if (runtime_sensor_)
+    this->runtime_sensor_->publish_state(runtimeSeconds);
 
   this->last_stats_ = millis();
 }
@@ -190,7 +223,7 @@ void JuncTekKGF::loop()
 {
   const unsigned long start_time = millis();
 
-  if (!this->last_settings_ || (*this->last_settings_ + (30 * 1000)) < start_time)
+  if (!this->last_settings_ || (*this->last_settings_ + (settings_refresh_seconds_)) < start_time)
   {
     this->last_settings_ = start_time;
     char buffer[20];
@@ -198,7 +231,7 @@ void JuncTekKGF::loop()
     write_str(buffer);
   }
 
-  if (!this->last_stats_ || (*this->last_stats_ + (10 * 1000)) < start_time)
+  if (!this->last_stats_ || (*this->last_stats_ + (data_refresh_seconds_)) < start_time)
   {
     this->last_stats_ = start_time;
     char buffer[20];
