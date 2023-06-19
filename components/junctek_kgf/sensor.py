@@ -112,8 +112,8 @@ CONFIG_SCHEMA = cv.All(
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_INVERT_CURRENT, default=False): cv.boolean, 
-            cv.Optional(CONF_SETTINGS_REFRESH, default=30): cv.update_interval, 
-            cv.Optional(CONF_DATA_REFRESH, default=10): cv.update_interval, 
+            cv.Optional(CONF_SETTINGS_REFRESH, default="30s"): cv.update_interval, 
+            cv.Optional(CONF_DATA_REFRESH, default="10s"): cv.update_interval, 
             
             cv.Optional(CONF_CURRENT_DIRECTION, default=True): cv.boolean,
         }
