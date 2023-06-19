@@ -41,17 +41,24 @@ DEPENDENCIES = ["uart"]
 
 AUTO_LOAD = ["sensor"]
 
+# sensors
+CONF_CURRENT_DIRECTION="current_direction"
+CONF_BATTERY_OHM="battery_ohm"
+
 TYPES = [
     CONF_VOLTAGE,
     CONF_CURRENT,
     CONF_POWER,
     CONF_BATTERY_LEVEL,
     CONF_TEMPERATURE,
+    CONF_CURRENT_DIRECTION,
+    CONF_BATTERY_OHM
 ]
 
+# variables
 CONF_INVERT_CURRENT="invert_current"
-CONF_CURRENT_DIRECTION="current_direction"
-CONF_BATTERY_OHM="battery_ohm"
+CONF_SETTINGS_REFRESH="settings_refresh_seconds"
+CONF_DATA_REFRESH="data_refresh_seconds"
 
 JuncTekKGF = cg.global_ns.class_(
     "JuncTekKGF", cg.Component, uart.UARTDevice
@@ -105,6 +112,9 @@ CONFIG_SCHEMA = cv.All(
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_INVERT_CURRENT, default=False): cv.boolean, 
+            cv.Optional(CONF_SETTINGS_REFRESH, default=30): cv.update_interval, 
+            cv.Optional(CONF_DATA_REFRESH, default=10): cv.update_interval, 
+            
             cv.Optional(CONF_CURRENT_DIRECTION, default=True): cv.boolean,
         }
     ).extend(uart.UART_DEVICE_SCHEMA)
@@ -118,7 +128,7 @@ async def setup_conf(config, key, hub):
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID], config[CONF_ADDRESS], config[CONF_INVERT_CURRENT], config[CONF_CURRENT_DIRECTION], config[CONF_BATTERY_OHM])
+    var = cg.new_Pvariable(config[CONF_ID], config[CONF_ADDRESS], config[CONF_INVERT_CURRENT], config[CONF_SETTINGS_REFRESH], config[CONF_DATA_REFRESH])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
     for key in TYPES:

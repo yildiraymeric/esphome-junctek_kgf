@@ -11,7 +11,7 @@ class JuncTekKGF
   , public uart::UARTDevice
 {
 public:
-  JuncTekKGF(unsigned address = 1, bool invert_current = false, unsigned settings_refresh_seconds_ = 30, unsigned data_refresh_seconds_ = 10);
+  JuncTekKGF(unsigned address = 1, bool invert_current = false, unsigned settings_refresh_seconds = 30, unsigned data_refresh_seconds = 10);
 
   void set_address(unsigned address) { address_ = address; }
   void set_invert_current(bool invert_current) { invert_current_ = invert_current; }
